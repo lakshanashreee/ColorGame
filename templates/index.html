@@ -4,37 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Game</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        #color-word {
+            font-size: 36px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Color Game</h1>
+    <h1>Color Game</h1>
 
-        <!-- Player Name Input -->
-        <div id="player-input">
-            <label for="player1-name">Player 1 Name:</label>
-            <input type="text" id="player1-name" required>
-            <label for="player2-name">Player 2 Name:</label>
-            <input type="text" id="player2-name" required>
-            <button id="start-game">Start Game</button>
-        </div>
-
-        <!-- Game Info -->
-        <div id="game-info" style="display: none;">
-            <h2 id="current-phase"></h2>
-            <p id="color-word-text">Color Word</p>
-            <input type="text" id="color-input" placeholder="Enter color here" autofocus>
-            <button id="submit-answer">Submit Answer</button>
-            <p>Time Left: <span id="time-left">30</span> seconds</p>
-            <p>Scores - Player 1: <span id="player1-score">0</span> | Player 2: <span id="player2-score">0</span></p>
-        </div>
-
-        <!-- Winner Section -->
-        <div id="winner-info" style="display: none;">
-            <h2 id="winner-message"></h2>
-            <button onclick="location.reload()">Play Again</button>
-        </div>
+    <div id="name-input">
+        <label for="player1-name">Player 1 Name:</label>
+        <input type="text" id="player1-name" required>
+        <br>
+        <label for="player2-name">Player 2 Name:</label>
+        <input type="text" id="player2-name" required>
+        <br>
+        <button id="start-game">Start Game</button>
     </div>
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <div id="game-section" class="hidden">
+        <h2 id="phase-text"></h2>
+        <p id="color-word"></p>
+        <input type="text" id="color-input" placeholder="Enter the color" autofocus>
+        <button id="submit-answer">Submit Answer</button>
+        <p>Time Left: <span id="time-left">30</span> seconds</p>
+        <p>Player 1 Score: <span id="player1-score">0</span></p>
+        <p>Player 2 Score: <span id="player2-score">0</span></p>
+    </div>
+
+    <div id="result-section" class="hidden">
+        <h2 id="winner"></h2>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+
+    <script>
+        const startButton = document.getElementById("start-game");
+        const submitButton = document.getElementById("submit-answer");
+        let player1Name, player2Name, player1Score = 0, player2Score = 0, timeLeft = 30, correctColor;
+        let interval;
+
+        startButton.addEventListener("click", startGame);
+
+        function startGame() {
+            player1Name = document.getElementById("player1-name").value.trim();
+            player2Name = document.getElementById("player2-name").value.trim();
+
+            if (!player1Name || !player2Name) {
+                alert("Both players must enter their names.");
+                return;
+            }
+
+            fetch("/start_game", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ player1_name: player1Name, player2_name: player2Name })
+            })
+            .then(response => response.json())
+            .then(data => initializeGame(data))
+            .catch(err => alert("Error: " + err.message));
+        }
+
+        function initializeGame(data) {
+            correctColor = data.color_word.color;
+            renderColorWord(data.color_word);
+            document.getElementById("name-input").classList.add("hidden");
+            document.getElementById("game-section").classList.remove("hidden");
+            document.getElementById("phase-text").innerText = `${player1Name}'s Turn`;
+
+            interval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            document.getElementById("time-left").innerText = timeLeft;
+
+            if (timeLeft === 15) {
+                document.getElementById("phase-text").innerText = `${player2Name}'s Turn`;
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(interval);
+                endGame();
+            }
+        }
+
+        submitButton.addEventListener("click", () => {
+            const colorInput = document.getElementById("color-input").value.trim();
+
+            fetch("/submit_answer", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    color_input: colorInput,
+                    correct_color: correctColor,
+                    time_left: timeLeft,
+                    player1_score: player1Score,
+                    player2_score: player2Score,
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                player1Score = data.player1_score;
+                player2Score = data.player2_score;
+                document.getElementById("player1-score").innerText = player1Score;
+                document.getElementById("player2-score").innerText = player2Score;
+                fetchNextWord();
+            })
+            .catch(err => alert("Error: " + err.message));
+        });
+
+        function fetchNextWord() {
+            fetch("/next_word", { method: "POST" })
+            .then(response => response.json())
+            .then(data => {
+                correctColor = data.color;
+                renderColorWord(data);
+            });
+        }
+
+        function renderColorWord(data) {
+            const wordElement = document.getElementById("color-word");
+            wordElement.innerText = data.word;
+            wordElement.style.color = data.color;
+        }
+
+        function endGame() {
+            document.getElementById("game-section").classList.add("hidden");
+            document.getElementById("result-section").classList.remove("hidden");
+            const winner =
+                player1Score > player2Score
+                    ? player1Name
+                    : player2Score > player1Score
+                    ? player2Name
+                    : "It's a Tie!";
+            document.getElementById("winner").innerText = `Winner: ${winner}`;
+        }
+    </script>
 </body>
 </html>

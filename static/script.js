@@ -1,14 +1,13 @@
+document.getElementById("start-game").addEventListener("click", startGame);
+document.getElementById("submit-answer").addEventListener("click", submitAnswer);
+
 let player1Name = "";
 let player2Name = "";
 let player1Score = 0;
 let player2Score = 0;
 let timeLeft = 30;
-let currentPhase = 1;
 let correctColor = "";
 let gameInterval = null;
-
-document.getElementById("start-game").addEventListener("click", startGame);
-document.getElementById("submit-answer").addEventListener("click", submitAnswer);
 
 function startGame() {
     player1Name = document.getElementById("player1-name").value.trim();
@@ -19,24 +18,40 @@ function startGame() {
         return;
     }
 
+    // Reset scores and time
+    player1Score = 0;
+    player2Score = 0;
+    timeLeft = 30;
+
+    document.getElementById("player1-score").innerText = player1Score;
+    document.getElementById("player2-score").innerText = player2Score;
+    document.getElementById("time-left").innerText = timeLeft;
+
     fetch("/start_game", {
         method: "POST",
-        body: new URLSearchParams({ player1_name: player1Name, player2_name: player2Name }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `player1_name=${encodeURIComponent(player1Name)}&player2_name=${encodeURIComponent(player2Name)}`
     })
         .then((response) => response.json())
         .then((data) => {
-            if (data.error) {
-                alert(data.error);
-                return;
-            }
-
-            correctColor = data.color_word.color;
-            document.getElementById("color-word-text").innerText = data.color_word.word;
-            document.getElementById("player-input").style.display = "none";
-            document.getElementById("game-info").style.display = "block";
-
-            gameInterval = setInterval(updateTime, 1000);
+            initializeGame(data);
+        })
+        .catch((error) => {
+            alert(`Error: ${error.message}`);
         });
+}
+
+function initializeGame(data) {
+    correctColor = data.color_word.color;
+    document.getElementById("color-word-text").innerText = data.color_word.word;
+    document.getElementById("player-input").style.display = "none";
+    document.getElementById("game-info").style.display = "block";
+
+    const colorInput = document.getElementById("color-input");
+    colorInput.value = ""; // Clear input field
+    colorInput.focus(); // Set focus on the input field
+
+    gameInterval = setInterval(updateTime, 1000);
 }
 
 function updateTime() {
@@ -44,7 +59,6 @@ function updateTime() {
     document.getElementById("time-left").innerText = timeLeft;
 
     if (timeLeft === 15) {
-        currentPhase = 2;
         document.getElementById("current-phase").innerText = `Player 2's turn!`;
     }
 
@@ -55,18 +69,24 @@ function updateTime() {
 }
 
 function submitAnswer() {
-    const colorInput = document.getElementById("color-input").value.trim();
+    const colorInput = document.getElementById("color-input");
+    const colorInputValue = colorInput.value.trim();
+
+    if (!colorInputValue) {
+        alert("Please type a color.");
+        return;
+    }
 
     fetch("/submit_answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            color_input: colorInput,
+            color_input: colorInputValue,
             correct_color: correctColor,
             time_left: timeLeft,
             player1_score: player1Score,
             player2_score: player2Score,
-        }),
+        })
     })
         .then((response) => response.json())
         .then((data) => {
@@ -77,9 +97,14 @@ function submitAnswer() {
             document.getElementById("player2-score").innerText = player2Score;
 
             fetchNextWord();
+        })
+        .catch((error) => {
+            alert(`Error: ${error.message}`);
         });
 
-    document.getElementById("color-input").value = "";
+    // Clear the input field after submission and refocus
+    colorInput.value = "";
+    colorInput.focus();
 }
 
 function fetchNextWord() {
@@ -88,6 +113,11 @@ function fetchNextWord() {
         .then((data) => {
             correctColor = data.color;
             document.getElementById("color-word-text").innerText = data.word;
+
+            // Prepare the input field for the next word
+            const colorInput = document.getElementById("color-input");
+            colorInput.value = "";
+            colorInput.focus();
         });
 }
 
