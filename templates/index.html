@@ -16,7 +16,7 @@
             <input type="text" id="player1-name" name="player1-name" required>
             <label for="player2-name">Enter Player 2 Name:</label>
             <input type="text" id="player2-name" name="player2-name" required>
-            <button onclick="startGame()">Start Game</button>
+            <button id="start-game" onclick="startGame()">Start Game</button>
         </div>
 
         <!-- Game Info -->
@@ -29,7 +29,7 @@
                 <p>Time Left: <span id="time-left">30</span> seconds</p>
             </div>
             <div id="color-word">
-                <p id="color-word-text">{{ word_color }}</p>
+                <p id="color-word-text">Color Word Here</p>
             </div>
             <form id="color-form" method="POST" onsubmit="return submitAnswer()">
                 <input type="text" id="color-input" name="color_input" placeholder="Type the color here" required autofocus>
@@ -121,9 +121,9 @@
             const data = {
                 color_input: colorInput,
                 correct_color: correctColor,
+                current_player: currentPlayer,
                 player1_name: player1Name,
                 player2_name: player2Name,
-                current_player: currentPlayer,
                 player1_score: gameData.player1_score,
                 player2_score: gameData.player2_score,
             };
@@ -173,4 +173,3 @@
     </script>
 </body>
 </html>
-
