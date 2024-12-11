@@ -20,7 +20,7 @@
         </div>
 
         <!-- Game Info -->
-        <div id="game-info">
+        <div id="game-info" style="display: none;">
             <h2 id="current-player"></h2>
             <div id="score">
                 <p>Player 1: <span id="player1-score">0</span> | Player 2: <span id="player2-score">0</span></p>
@@ -28,17 +28,17 @@
             <div id="time">
                 <p>Time Left: <span id="time-left">30</span> seconds</p>
             </div>
-            <div id="color-word" class="color-word">
-                <p id="word-color">{{ word_color }}</p>
+            <div id="color-word">
+                <p id="color-word-text">{{ word_color }}</p>
             </div>
-            <form id="color-form" method="POST" action="/submit_answer">
+            <form id="color-form" method="POST" onsubmit="return submitAnswer()">
                 <input type="text" id="color-input" name="color_input" placeholder="Type the color here" required autofocus>
                 <button type="submit">Submit</button>
             </form>
         </div>
 
         <!-- Winner Info -->
-        <div id="winner-info">
+        <div id="winner-info" style="display: none;">
             <h2 id="winner-message"></h2>
             <button onclick="restartGame()">Restart Game</button>
         </div>
@@ -47,13 +47,12 @@
     <script>
         let player1Name = '';
         let player2Name = '';
-        let currentPlayer = 0; // 0 for Player 1, 1 for Player 2
+        let currentPlayer = '';
         let scores = [0, 0];
         let timeLeft = 30;
-        let wordColor = '';
+        let correctColor = '';
+        let gameData = {};
         let gameInterval = null;
-        let switchInterval = null;
-        let currentColor = '';
 
         // Start Game
         function startGame() {
@@ -65,71 +64,98 @@
                 return;
             }
 
-            document.getElementById('player-input').style.display = 'none';
-            document.getElementById('game-info').style.display = 'block';
-            document.getElementById('current-player').innerText = player1Name + "'s turn!";
-            
-            gameInterval = setInterval(updateTime, 1000);
-            switchInterval = setInterval(switchPlayer, 15000); // Switch every 15 seconds
-            nextWord();
+            const data = new FormData();
+            data.append('player1_name', player1Name);
+            data.append('player2_name', player2Name);
+
+            fetch('/start_game', {
+                method: 'POST',
+                body: data,
+            }).then(response => response.json())
+              .then(data => {
+                  gameData = data;
+                  currentPlayer = player1Name;
+                  document.getElementById('player-input').style.display = 'none';
+                  document.getElementById('game-info').style.display = 'block';
+                  document.getElementById('current-player').innerText = player1Name + "'s turn!";
+                  updateScores();
+                  startCountdown();
+                  showNextWord();
+              });
         }
 
-        // Update time every second
-        function updateTime() {
-            timeLeft--;
-            document.getElementById('time-left').innerText = timeLeft;
-            
-            if (timeLeft <= 0) {
-                clearInterval(gameInterval);
-                clearInterval(switchInterval);
-                displayWinner();
-            }
-        }
-
-        // Switch between players every 15 seconds
-        function switchPlayer() {
-            currentPlayer = 1 - currentPlayer;
-            document.getElementById('current-player').innerText = (currentPlayer === 0 ? player1Name : player2Name) + "'s turn!";
-            nextWord();
-        }
-
-        // Generate the word and color
-        function nextWord() {
-            // Example word-color logic
-            const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
-            const words = ["RED", "BLUE", "GREEN", "YELLOW", "PURPLE", "ORANGE"];
-            const randomIndex = Math.floor(Math.random() * colors.length);
-            currentColor = colors[randomIndex];
-            wordColor = words[randomIndex];
-
-            document.getElementById('word-color').style.color = currentColor;
-            document.getElementById('color-form').style.display = 'block';
-        }
-
-        // Submit Answer
-        document.getElementById('color-form').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const userAnswer = document.getElementById('color-input').value.trim().toUpperCase();
-
-            if (userAnswer === currentColor) {
-                scores[currentPlayer]++;
-                updateScores();
-            }
-            nextWord();
-        });
-
-        // Update the scores
+        // Update Scores
         function updateScores() {
-            document.getElementById('player1-score').innerText = scores[0];
-            document.getElementById('player2-score').innerText = scores[1];
+            document.getElementById('player1-score').innerText = gameData.player1_score;
+            document.getElementById('player2-score').innerText = gameData.player2_score;
+        }
+
+        // Start the countdown
+        function startCountdown() {
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('time-left').innerText = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(gameInterval);
+                    displayWinner();
+                }
+            }, 1000);
+        }
+
+        // Show next word with color
+        function showNextWord() {
+            fetch('/next_word', {
+                method: 'POST',
+            }).then(response => response.json())
+              .then(data => {
+                  correctColor = data.color;
+                  document.getElementById('color-word-text').innerText = data.word;
+                  document.getElementById('color-word-text').style.color = data.color;
+              });
+        }
+
+        // Submit answer
+        function submitAnswer() {
+            const colorInput = document.getElementById('color-input').value.trim();
+            const data = {
+                color_input: colorInput,
+                correct_color: correctColor,
+                player1_name: player1Name,
+                player2_name: player2Name,
+                current_player: currentPlayer,
+                player1_score: gameData.player1_score,
+                player2_score: gameData.player2_score,
+            };
+
+            fetch('/submit_answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            }).then(response => response.json())
+              .then(data => {
+                  gameData.player1_score = data.player1_score;
+                  gameData.player2_score = data.player2_score;
+                  updateScores();
+                  switchPlayer();
+                  showNextWord();
+              });
+
+            return false; // Prevent form submission
+        }
+
+        // Switch between players
+        function switchPlayer() {
+            currentPlayer = (currentPlayer === player1Name) ? player2Name : player1Name;
+            document.getElementById('current-player').innerText = currentPlayer + "'s turn!";
         }
 
         // Display the winner
         function displayWinner() {
             let winner = '';
-            if (scores[0] > scores[1]) {
+            if (gameData.player1_score > gameData.player2_score) {
                 winner = player1Name;
-            } else if (scores[1] > scores[0]) {
+            } else if (gameData.player2_score > gameData.player1_score) {
                 winner = player2Name;
             } else {
                 winner = "It's a tie!";
@@ -140,10 +166,11 @@
             document.getElementById('winner-message').innerText = winner + " wins!";
         }
 
-        // Restart Game
+        // Restart the game
         function restartGame() {
             location.reload();
         }
     </script>
 </body>
 </html>
+

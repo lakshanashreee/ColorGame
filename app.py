@@ -1,44 +1,62 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, jsonify
 import random
+import time
 
 app = Flask(__name__)
 
-# List of possible colors
-colours = ['Red', 'Blue', 'Green', 'Pink', 'Black', 'Yellow', 'Orange', 'White', 'Purple', 'Brown']
-scores = [0, 0]  # Scores for Player 1 and Player 2
-timeleft = 30
-current_player = 0  # Player 1 starts (0 for Player 1, 1 for Player 2)
+# Colors and their respective words
+colors = ["red", "blue", "green", "yellow", "purple", "orange"]
+words = ["RED", "BLUE", "GREEN", "YELLOW", "PURPLE", "ORANGE"]
 
 @app.route('/')
-def home():
-    global timeleft, current_player
-    timeleft = 30  # Reset the timer when the game starts
-    current_player = 0  # Player 1 starts
-    return render_template('index.html', scores=scores, timeleft=timeleft, current_player=current_player)
+def index():
+    return render_template('index.html')
 
 @app.route('/start_game', methods=['POST'])
 def start_game():
-    global scores, timeleft, current_player
-    # Shuffle and pick the color
-    random.shuffle(colours)
-    word_color = colours[1]
-    text_color = colours[0]
-    
-    # Get the color typed by the player
-    player_input = request.form.get('color_input')
+    player1_name = request.form['player1_name']
+    player2_name = request.form['player2_name']
+    game_data = {
+        'player1_name': player1_name,
+        'player2_name': player2_name,
+        'player1_score': 0,
+        'player2_score': 0,
+        'current_player': player1_name,
+        'time_left': 30,
+        'color_word': generate_new_word(),
+    }
+    return jsonify(game_data)
 
-    if player_input and player_input.lower() == word_color.lower():
-        scores[current_player] += 1
+@app.route('/next_word', methods=['POST'])
+def next_word():
+    color_word = generate_new_word()
+    return jsonify({'color_word': color_word})
 
-    # Switch player after each input
-    current_player = 1 - current_player
+@app.route('/submit_answer', methods=['POST'])
+def submit_answer():
+    data = request.get_json()
+    color_input = data['color_input']
+    correct_color = data['correct_color']
+    current_player = data['current_player']
+    player1_score = data['player1_score']
+    player2_score = data['player2_score']
 
-    # Check if the time is over (for simplicity, the timer is not dynamic here)
-    if timeleft == 0:
-        winner = "Player 1" if scores[0] > scores[1] else "Player 2" if scores[1] > scores[0] else "It's a tie!"
-        return render_template('index.html', scores=scores, timeleft=timeleft, current_player=current_player, winner=winner)
-    
-    return render_template('index.html', scores=scores, timeleft=timeleft, current_player=current_player, word_color=word_color, text_color=text_color)
+    if color_input.lower() == correct_color.lower():
+        if current_player == data['player1_name']:
+            player1_score += 1
+        else:
+            player2_score += 1
+
+    return jsonify({
+        'player1_score': player1_score,
+        'player2_score': player2_score,
+    })
+
+def generate_new_word():
+    random_index = random.randint(0, len(colors) - 1)
+    color = colors[random_index]
+    word = words[random_index]
+    return {'color': color, 'word': word}
 
 if __name__ == "__main__":
     app.run(debug=True)
