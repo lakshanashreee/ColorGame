@@ -10,166 +10,31 @@
     <div class="container">
         <h1>Color Game</h1>
 
-        <!-- Player Name Input Form -->
+        <!-- Player Name Input -->
         <div id="player-input">
-            <label for="player1-name">Enter Player 1 Name:</label>
-            <input type="text" id="player1-name" name="player1-name" required>
-            <label for="player2-name">Enter Player 2 Name:</label>
-            <input type="text" id="player2-name" name="player2-name" required>
-            <button id="start-game" onclick="startGame()">Start Game</button>
+            <label for="player1-name">Player 1 Name:</label>
+            <input type="text" id="player1-name" required>
+            <label for="player2-name">Player 2 Name:</label>
+            <input type="text" id="player2-name" required>
+            <button id="start-game">Start Game</button>
         </div>
 
         <!-- Game Info -->
         <div id="game-info" style="display: none;">
-            <h2 id="current-player"></h2>
-            <div id="score">
-                <p>Player 1: <span id="player1-score">0</span> | Player 2: <span id="player2-score">0</span></p>
-            </div>
-            <div id="time">
-                <p>Time Left: <span id="time-left">30</span> seconds</p>
-            </div>
-            <div id="color-word">
-                <p id="color-word-text">Color Word Here</p>
-            </div>
-            <form id="color-form" method="POST" onsubmit="return submitAnswer()">
-                <input type="text" id="color-input" name="color_input" placeholder="Type the color here" required autofocus>
-                <button type="submit">Submit</button>
-            </form>
+            <h2 id="current-phase"></h2>
+            <p id="color-word-text">Color Word</p>
+            <input type="text" id="color-input" placeholder="Enter color here" autofocus>
+            <button id="submit-answer">Submit Answer</button>
+            <p>Time Left: <span id="time-left">30</span> seconds</p>
+            <p>Scores - Player 1: <span id="player1-score">0</span> | Player 2: <span id="player2-score">0</span></p>
         </div>
 
-        <!-- Winner Info -->
+        <!-- Winner Section -->
         <div id="winner-info" style="display: none;">
             <h2 id="winner-message"></h2>
-            <button onclick="restartGame()">Restart Game</button>
+            <button onclick="location.reload()">Play Again</button>
         </div>
     </div>
-
-    <script>
-        let player1Name = '';
-        let player2Name = '';
-        let currentPlayer = '';
-        let scores = [0, 0];
-        let timeLeft = 30;
-        let correctColor = '';
-        let gameData = {};
-        let gameInterval = null;
-
-        // Start Game
-        function startGame() {
-            player1Name = document.getElementById('player1-name').value;
-            player2Name = document.getElementById('player2-name').value;
-
-            if (!player1Name || !player2Name) {
-                alert("Please enter both player names.");
-                return;
-            }
-
-            const data = new FormData();
-            data.append('player1_name', player1Name);
-            data.append('player2_name', player2Name);
-
-            fetch('/start_game', {
-                method: 'POST',
-                body: data,
-            }).then(response => response.json())
-              .then(data => {
-                  gameData = data;
-                  currentPlayer = player1Name;
-                  document.getElementById('player-input').style.display = 'none';
-                  document.getElementById('game-info').style.display = 'block';
-                  document.getElementById('current-player').innerText = player1Name + "'s turn!";
-                  updateScores();
-                  startCountdown();
-                  showNextWord();
-              });
-        }
-
-        // Update Scores
-        function updateScores() {
-            document.getElementById('player1-score').innerText = gameData.player1_score;
-            document.getElementById('player2-score').innerText = gameData.player2_score;
-        }
-
-        // Start the countdown
-        function startCountdown() {
-            gameInterval = setInterval(() => {
-                timeLeft--;
-                document.getElementById('time-left').innerText = timeLeft;
-
-                if (timeLeft <= 0) {
-                    clearInterval(gameInterval);
-                    displayWinner();
-                }
-            }, 1000);
-        }
-
-        // Show next word with color
-        function showNextWord() {
-            fetch('/next_word', {
-                method: 'POST',
-            }).then(response => response.json())
-              .then(data => {
-                  correctColor = data.color;
-                  document.getElementById('color-word-text').innerText = data.word;
-                  document.getElementById('color-word-text').style.color = data.color;
-              });
-        }
-
-        // Submit answer
-        function submitAnswer() {
-            const colorInput = document.getElementById('color-input').value.trim();
-            const data = {
-                color_input: colorInput,
-                correct_color: correctColor,
-                current_player: currentPlayer,
-                player1_name: player1Name,
-                player2_name: player2Name,
-                player1_score: gameData.player1_score,
-                player2_score: gameData.player2_score,
-            };
-
-            fetch('/submit_answer', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            }).then(response => response.json())
-              .then(data => {
-                  gameData.player1_score = data.player1_score;
-                  gameData.player2_score = data.player2_score;
-                  updateScores();
-                  switchPlayer();
-                  showNextWord();
-              });
-
-            return false; // Prevent form submission
-        }
-
-        // Switch between players
-        function switchPlayer() {
-            currentPlayer = (currentPlayer === player1Name) ? player2Name : player1Name;
-            document.getElementById('current-player').innerText = currentPlayer + "'s turn!";
-        }
-
-        // Display the winner
-        function displayWinner() {
-            let winner = '';
-            if (gameData.player1_score > gameData.player2_score) {
-                winner = player1Name;
-            } else if (gameData.player2_score > gameData.player1_score) {
-                winner = player2Name;
-            } else {
-                winner = "It's a tie!";
-            }
-
-            document.getElementById('game-info').style.display = 'none';
-            document.getElementById('winner-info').style.display = 'block';
-            document.getElementById('winner-message').innerText = winner + " wins!";
-        }
-
-        // Restart the game
-        function restartGame() {
-            location.reload();
-        }
-    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
