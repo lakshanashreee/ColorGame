@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Game</title>
+    <!-- Correct URL for static files -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Color Game</h1>
+        
+        {% if winner %}
+            <h2>{{ winner }} wins!</h2>
+        {% else %}
+            <h2>Player {{ current_player + 1 }}'s turn! Type the color of the word.</h2>
+        {% endif %}
+
+        <div id="score">
+            <p>Player 1: {{ scores[0] }} | Player 2: {{ scores[1] }}</p>
+        </div>
+
+        <div id="time">
+            <p>Time Left: {{ timeleft }} seconds</p>
+        </div>
+
+        <div id="color-word" class="color-word">
+            <p>{{ word_color }}</p>
+        </div>
+        
+        <form method="POST" action="/start_game">
+            <input type="text" name="color_input" placeholder="Type the color here" required autofocus>
+            <button type="submit">Submit</button>
+        </form>
+
+        {% if timeleft == 0 %}
+            <button onclick="window.location.reload()">Restart Game</button>
+        {% endif %}
+    </div>
+</body>
+</html>
