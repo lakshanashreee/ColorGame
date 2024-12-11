@@ -1,62 +1,77 @@
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    background-color: #f1f1f1;
+    background-color: #f0f0f0;
+    padding: 20px;
 }
 
 .container {
-    max-width: 600px;
+    width: 50%;
     margin: 0 auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
     color: #333;
 }
 
-#score {
-    font-size: 18px;
-    margin-bottom: 10px;
+#game-info, #winner-info {
+    margin-top: 20px;
 }
 
-#time {
-    font-size: 16px;
-    margin-bottom: 20px;
-}
-
-#color-word {
-    font-size: 50px;
+#color-word p {
+    font-size: 2em;
     font-weight: bold;
-    margin-bottom: 20px;
 }
 
-input[type="text"] {
+#color-input {
     padding: 10px;
-    font-size: 18px;
-    margin-right: 10px;
-    border-radius: 4px;
+    font-size: 1em;
+    margin-top: 10px;
 }
 
 button {
     padding: 10px 20px;
-    font-size: 18px;
-    background-color: #007bff;
+    font-size: 1em;
+    background-color: #28a745;
     color: white;
     border: none;
-    border-radius: 4px;
+    cursor: pointer;
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: #218838;
 }
 
-button:focus {
-    outline: none;
+input[type="text"] {
+    padding: 10px;
+    font-size: 1em;
+    margin-top: 10px;
 }
 
-.color-word {
-    color: var(--text-color);
+#player-input input {
+    width: 40%;
 }
+
+#player-input {
+    text-align: center;
+}
+
+#score p {
+    font-size: 1.2em;
+    margin: 10px 0;
+}
+
+/* Add styles for hidden elements */
+#game-info {
+    display: none;
+}
+
+#time {
+    display: none;
+}
+
+#color-word {
+    display: none;
+}
+
+/* Add more styles as needed */

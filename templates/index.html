@@ -4,39 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Game</title>
-    <!-- Correct URL for static files -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
         <h1>Color Game</h1>
-        
-        {% if winner %}
-            <h2>{{ winner }} wins!</h2>
-        {% else %}
-            <h2>Player {{ current_player + 1 }}'s turn! Type the color of the word.</h2>
-        {% endif %}
 
-        <div id="score">
-            <p>Player 1: {{ scores[0] }} | Player 2: {{ scores[1] }}</p>
+        <!-- Player Name Input Form -->
+        <div id="player-input">
+            <label for="player1-name">Enter Player 1 Name:</label>
+            <input type="text" id="player1-name" name="player1-name" required>
+            <label for="player2-name">Enter Player 2 Name:</label>
+            <input type="text" id="player2-name" name="player2-name" required>
+            <button onclick="startGame()">Start Game</button>
         </div>
 
-        <div id="time">
-            <p>Time Left: {{ timeleft }} seconds</p>
+        <!-- Game Info -->
+        <div id="game-info">
+            <h2 id="current-player"></h2>
+            <div id="score">
+                <p>Player 1: <span id="player1-score">0</span> | Player 2: <span id="player2-score">0</span></p>
+            </div>
+            <div id="time">
+                <p>Time Left: <span id="time-left">30</span> seconds</p>
+            </div>
+            <div id="color-word" class="color-word">
+                <p id="word-color">{{ word_color }}</p>
+            </div>
+            <form id="color-form" method="POST" action="/submit_answer">
+                <input type="text" id="color-input" name="color_input" placeholder="Type the color here" required autofocus>
+                <button type="submit">Submit</button>
+            </form>
         </div>
 
-        <div id="color-word" class="color-word">
-            <p>{{ word_color }}</p>
+        <!-- Winner Info -->
+        <div id="winner-info">
+            <h2 id="winner-message"></h2>
+            <button onclick="restartGame()">Restart Game</button>
         </div>
-        
-        <form method="POST" action="/start_game">
-            <input type="text" name="color_input" placeholder="Type the color here" required autofocus>
-            <button type="submit">Submit</button>
-        </form>
-
-        {% if timeleft == 0 %}
-            <button onclick="window.location.reload()">Restart Game</button>
-        {% endif %}
     </div>
+
+    <script>
+        let player1Name = '';
+        let player2Name = '';
+        let currentPlayer = 0; // 0 for Player 1, 1 for Player 2
+        let scores = [0, 0];
+        let timeLeft = 30;
+        let wordColor = '';
+        let gameInterval = null;
+        let switchInterval = null;
+        let currentColor = '';
+
+        // Start Game
+        function startGame() {
+            player1Name = document.getElementById('player1-name').value;
+            player2Name = document.getElementById('player2-name').value;
+
+            if (!player1Name || !player2Name) {
+                alert("Please enter both player names.");
+                return;
+            }
+
+            document.getElementById('player-input').style.display = 'none';
+            document.getElementById('game-info').style.display = 'block';
+            document.getElementById('current-player').innerText = player1Name + "'s turn!";
+            
+            gameInterval = setInterval(updateTime, 1000);
+            switchInterval = setInterval(switchPlayer, 15000); // Switch every 15 seconds
+            nextWord();
+        }
+
+        // Update time every second
+        function updateTime() {
+            timeLeft--;
+            document.getElementById('time-left').innerText = timeLeft;
+            
+            if (timeLeft <= 0) {
+                clearInterval(gameInterval);
+                clearInterval(switchInterval);
+                displayWinner();
+            }
+        }
+
+        // Switch between players every 15 seconds
+        function switchPlayer() {
+            currentPlayer = 1 - currentPlayer;
+            document.getElementById('current-player').innerText = (currentPlayer === 0 ? player1Name : player2Name) + "'s turn!";
+            nextWord();
+        }
+
+        // Generate the word and color
+        function nextWord() {
+            // Example word-color logic
+            const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
+            const words = ["RED", "BLUE", "GREEN", "YELLOW", "PURPLE", "ORANGE"];
+            const randomIndex = Math.floor(Math.random() * colors.length);
+            currentColor = colors[randomIndex];
+            wordColor = words[randomIndex];
+
+            document.getElementById('word-color').style.color = currentColor;
+            document.getElementById('color-form').style.display = 'block';
+        }
+
+        // Submit Answer
+        document.getElementById('color-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const userAnswer = document.getElementById('color-input').value.trim().toUpperCase();
+
+            if (userAnswer === currentColor) {
+                scores[currentPlayer]++;
+                updateScores();
+            }
+            nextWord();
+        });
+
+        // Update the scores
+        function updateScores() {
+            document.getElementById('player1-score').innerText = scores[0];
+            document.getElementById('player2-score').innerText = scores[1];
+        }
+
+        // Display the winner
+        function displayWinner() {
+            let winner = '';
+            if (scores[0] > scores[1]) {
+                winner = player1Name;
+            } else if (scores[1] > scores[0]) {
+                winner = player2Name;
+            } else {
+                winner = "It's a tie!";
+            }
+
+            document.getElementById('game-info').style.display = 'none';
+            document.getElementById('winner-info').style.display = 'block';
+            document.getElementById('winner-message').innerText = winner + " wins!";
+        }
+
+        // Restart Game
+        function restartGame() {
+            location.reload();
+        }
+    </script>
 </body>
 </html>
